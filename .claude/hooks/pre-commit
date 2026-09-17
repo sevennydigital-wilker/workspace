@@ -1,0 +1,43 @@
+#!/bin/sh
+# Bloqueia o commit se detectar padrão de credencial no diff staged.
+# Ativar com: git config core.hooksPath .claude/hooks && chmod +x .claude/hooks/pre-commit
+#
+# Isto é uma rede de segurança, não uma garantia total. Revise manualmente
+# qualquer arquivo com nome suspeito antes de commitar.
+
+set -e
+
+PATTERNS='(AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY-----|xox[baprs]-[0-9A-Za-z-]{10,}|EAA[A-Za-z0-9]{50,}|sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,}|ghp_[A-Za-z0-9]{30,}|service_role|client_secret[[:space:]]*[:=])'
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+FOUND=0
+for f in $STAGED; do
+  case "$f" in
+    *.env|*.pem|*.key|*service-account*.json|*credentials*.json)
+      echo "BLOQUEADO: '$f' parece ser um arquivo de credencial. Remova do commit."
+      FOUND=1
+      ;;
+    .claude/hooks/pre-commit)
+      # o próprio hook contém os padrões como texto de referência, não segredos reais
+      continue
+      ;;
+  esac
+  if [ -f "$f" ] && git diff --cached -- "$f" | grep -qE "$PATTERNS"; then
+    echo "BLOQUEADO: padrão de credencial encontrado em '$f'."
+    FOUND=1
+  fi
+done
+
+if [ "$FOUND" -eq 1 ]; then
+  echo ""
+  echo "Commit abortado. Tire a credencial do código (use variável de ambiente / .env local)."
+  echo "NUNCA use --no-verify para contornar esta trava."
+  exit 1
+fi
+
+exit 0

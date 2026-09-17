@@ -1,0 +1,30 @@
+# Credenciais — NUNCA versionar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+id_rsa
+id_rsa.pub
+google-sa.json
+google_ads_adc.json
+*service-account*.json
+*credentials*.json
+
+# Configs locais que costumam acumular caminho/estado pessoal
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.mcp.json
+
+# Segundo cérebro fica local — nunca dentro do repositório de código
+vault/
+segundo-cerebro/
+*.obsidian/
+
+# Lixo comum de sessão
+node_modules/
+.playwright-mcp/
+*.log
+Thumbs.db
+.DS_Store
